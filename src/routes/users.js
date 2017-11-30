@@ -1,4 +1,5 @@
 import express from "express";
+
 import User from "../models/User";
 import parseErrors from "../utils/parseErrors";
 import { sendConfirmationEmail } from "../mailer";
