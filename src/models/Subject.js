@@ -23,6 +23,7 @@ const Subjects = new mongoose.Schema(
 );
 
 const customErrorMsg = {
+  // TODO: remover isso e tratar na Interface!!
   message: "Error, expected {PATH} to be unique."
 };
 Subjects.plugin(uniqueValidator, customErrorMsg);
