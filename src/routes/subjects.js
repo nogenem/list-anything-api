@@ -33,9 +33,10 @@ router.get("/", (req, res) => {
 
 router.get("/data", (req, res) => {
   if (req.query.tabId) {
-    SubjectData.find({ tabId: req.query.tabId }, { data: true }).then(data =>
-      res.json({ subjectData: data })
-    );
+    SubjectData.find(
+      { tabId: req.query.tabId },
+      { data: true, tabId: true }
+    ).then(data => res.json({ subjectData: data }));
   } else {
     res.status(400).json({});
   }
@@ -46,6 +47,20 @@ router.post("/", (req, res) => {
     .then(subject =>
       res.json({
         subject: { _id: subject._id, description: subject.description }
+      })
+    )
+    .catch(err => res.status(400).json({ errors: parseErrors(err.errors) }));
+});
+
+router.post("/data", (req, res) => {
+  SubjectData.create({ ...req.body })
+    .then(subjectData =>
+      res.json({
+        subjectData: {
+          _id: subjectData._id,
+          tabId: subjectData.tabId,
+          data: subjectData.data
+        }
       })
     )
     .catch(err => res.status(400).json({ errors: parseErrors(err.errors) }));
