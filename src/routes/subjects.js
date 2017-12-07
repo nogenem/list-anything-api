@@ -37,6 +37,10 @@ router.get("/data", (req, res) => {
       { tabId: req.query.tabId },
       { data: true, tabId: true }
     ).then(data => res.json({ subjectData: data }));
+  } else if (req.query._id) {
+    SubjectData.find({ _id: req.query._id }, { data: true, tabId: true }).then(
+      data => res.json({ subjectData: data })
+    );
   } else {
     res.status(400).json({});
   }
