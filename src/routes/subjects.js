@@ -1,4 +1,6 @@
 import express from "express";
+import mongoose from "mongoose";
+import forEach from "lodash.foreach";
 
 import authenticate from "../middlewares/authenticate";
 import Subject from "../models/Subject";
@@ -68,6 +70,27 @@ router.post("/data", (req, res) => {
       })
     )
     .catch(err => res.status(400).json({ errors: parseErrors(err.errors) }));
+});
+
+// $currentDate: { lastModified: true } }
+// http://mongoosejs.com/docs/api.html#model_Model.bulkWrite
+router.put("/data", (req, res) => {
+  const ObjectId = mongoose.Types.ObjectId;
+
+  const updates = [];
+  forEach(Object.values(req.body.data), elem => {
+    updates.push({
+      updateOne: {
+        filter: { "data._id": ObjectId(elem._id) },
+        update: { "data.$.value": elem.value }
+      }
+    });
+  });
+  SubjectData.bulkWrite(updates).then(() =>
+    SubjectData.find({ _id: req.body._id }, { data: true, tabId: true }).then(
+      data => res.json({ subjectData: data })
+    )
+  );
 });
 
 export default router;
