@@ -58,6 +58,15 @@ router.post("/", (req, res) => {
     .catch(err => res.status(400).json({ errors: parseErrors(err.errors) }));
 });
 
+router.delete("/", (req, res) => {
+  if(req.query._id){
+    const _id = mongoose.Types.ObjectId(req.query._id)
+    Subject.deleteOne({ _id })
+      .then(val => res.json({result: val.result.ok, _id}))
+      .catch(() => res.json({result: false, _id}))
+  }
+});
+
 router.post("/data", (req, res) => {
   SubjectData.create({ ...req.body })
     .then(subjectData =>
