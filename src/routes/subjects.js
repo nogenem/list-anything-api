@@ -76,9 +76,15 @@ router.post("/data", (req, res) => {
 // http://mongoosejs.com/docs/api.html#model_Model.bulkWrite
 router.put("/data", (req, res) => {
   const ObjectId = mongoose.Types.ObjectId;
+  const values = Object.values(req.body.data);
+
+  if(!values.length) {
+    res.status(400).json({errors: {global: "Invalid data."}});
+    return;
+  }
 
   const updates = [];
-  forEach(Object.values(req.body.data), elem => {
+  forEach(values, elem => {
     updates.push({
       updateOne: {
         filter: { "data._id": ObjectId(elem._id) },
@@ -91,6 +97,15 @@ router.put("/data", (req, res) => {
       data => res.json({ subjectData: data })
     )
   );
+});
+
+router.delete("/data", (req, res) => {
+  if(req.query._id){
+    const _id = mongoose.Types.ObjectId(req.query._id)
+    SubjectData.deleteOne({ _id })
+      .then(val => res.json({result: val.result.ok}))
+      .catch(() => res.json({result: false}))
+  }
 });
 
 export default router;
