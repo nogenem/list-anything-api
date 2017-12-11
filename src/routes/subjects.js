@@ -59,11 +59,16 @@ router.post("/", (req, res) => {
 });
 
 router.delete("/", (req, res) => {
-  if(req.query._id){
-    const _id = mongoose.Types.ObjectId(req.query._id)
-    Subject.deleteOne({ _id })
-      .then(val => res.json({result: val.result.ok, _id}))
-      .catch(() => res.json({result: false, _id}))
+  if (req.query._id) {
+    const _id = req.query._id;
+    Subject.findByIdAndRemove(_id, { select: "tabs" })
+      .then(subject => {
+        const tabs = subject.tabs.map(tab => mongoose.Types.ObjectId(tab._id));
+        SubjectData.deleteMany({ tabId: { $in: tabs } })
+          .then(() => res.json({ result: true, _id }))
+          .catch(() => res.json({ result: false, _id }));
+      })
+      .catch(() => res.json({ result: false, _id }));
   }
 });
 
@@ -82,13 +87,12 @@ router.post("/data", (req, res) => {
 });
 
 // $currentDate: { lastModified: true } }
-// http://mongoosejs.com/docs/api.html#model_Model.bulkWrite
 router.put("/data", (req, res) => {
   const ObjectId = mongoose.Types.ObjectId;
   const values = Object.values(req.body.data);
 
-  if(!values.length) {
-    res.status(400).json({errors: {global: "Invalid data."}});
+  if (!values.length) {
+    res.status(400).json({ errors: { global: "Invalid data." } });
     return;
   }
 
@@ -109,11 +113,11 @@ router.put("/data", (req, res) => {
 });
 
 router.delete("/data", (req, res) => {
-  if(req.query._id){
-    const _id = mongoose.Types.ObjectId(req.query._id)
+  if (req.query._id) {
+    const _id = mongoose.Types.ObjectId(req.query._id);
     SubjectData.deleteOne({ _id })
-      .then(val => res.json({result: val.result.ok}))
-      .catch(() => res.json({result: false}))
+      .then(val => res.json({ result: val.result.ok }))
+      .catch(() => res.json({ result: false }));
   }
 });
 
