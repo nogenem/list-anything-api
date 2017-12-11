@@ -16,7 +16,7 @@ const schema = new mongoose.Schema(
     confirmed: { type: Boolean, default: false },
     confirmationToken: { type: String, default: "" }
   },
-  { timestamps: true }
+  { timestamps: true, runSettersOnQuery: true }
 );
 
 schema.methods.isValidPassword = function isValidPassword(password) {
