@@ -1,6 +1,5 @@
 import express from "express";
 import mongoose from "mongoose";
-import forEach from "lodash.foreach";
 
 import authenticate from "../middlewares/authenticate";
 import Subject from "../models/Subject";
@@ -33,21 +32,6 @@ router.get("/", (req, res) => {
   }
 });
 
-router.get("/data", (req, res) => {
-  if (req.query.tabId) {
-    SubjectData.find(
-      { tabId: req.query.tabId },
-      { data: true, tabId: true }
-    ).then(data => res.json({ subjectData: data }));
-  } else if (req.query._id) {
-    SubjectData.find({ _id: req.query._id }, { data: true, tabId: true }).then(
-      data => res.json({ subjectData: data })
-    );
-  } else {
-    res.status(400).json({});
-  }
-});
-
 router.post("/", (req, res) => {
   Subject.create({ ...req.body.subject, userId: req.currentUser._id })
     .then(subject =>
@@ -69,55 +53,6 @@ router.delete("/", (req, res) => {
           .catch(() => res.json({ result: false, _id }));
       })
       .catch(() => res.json({ result: false, _id }));
-  }
-});
-
-router.post("/data", (req, res) => {
-  SubjectData.create({ ...req.body })
-    .then(subjectData =>
-      res.json({
-        subjectData: {
-          _id: subjectData._id,
-          tabId: subjectData.tabId,
-          data: subjectData.data
-        }
-      })
-    )
-    .catch(err => res.status(400).json({ errors: parseErrors(err.errors) }));
-});
-
-// $currentDate: { lastModified: true } }
-router.put("/data", (req, res) => {
-  const ObjectId = mongoose.Types.ObjectId;
-  const values = Object.values(req.body.data);
-
-  if (!values.length) {
-    res.status(400).json({ errors: { global: "Invalid data." } });
-    return;
-  }
-
-  const updates = [];
-  forEach(values, elem => {
-    updates.push({
-      updateOne: {
-        filter: { "data._id": ObjectId(elem._id) },
-        update: { "data.$.value": elem.value }
-      }
-    });
-  });
-  SubjectData.bulkWrite(updates).then(() =>
-    SubjectData.find({ _id: req.body._id }, { data: true, tabId: true }).then(
-      data => res.json({ subjectData: data })
-    )
-  );
-});
-
-router.delete("/data", (req, res) => {
-  if (req.query._id) {
-    const _id = mongoose.Types.ObjectId(req.query._id);
-    SubjectData.deleteOne({ _id })
-      .then(val => res.json({ result: val.result.ok }))
-      .catch(() => res.json({ result: false }));
   }
 });
 
