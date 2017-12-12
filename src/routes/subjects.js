@@ -11,20 +11,14 @@ router.use(authenticate);
 
 router.get("/", (req, res) => {
   if (req.query._id) {
-    Subject.find(
-      {
-        userId: req.currentUser._id,
-        _id: req.query._id
-      },
-      {
-        description: true,
-        tabs: true,
-        fields: true
-      }
-    )
-      .limit(1)
-      .then(resp => res.json({ subject: resp[0] }));
+    // findById
+    Subject.findById(req.query._id, {
+      description: true,
+      tabs: true,
+      fields: true
+    }).then(resp => res.json({ subject: resp }));
   } else {
+    // findByUserId
     Subject.find(
       { userId: req.currentUser._id },
       { _id: true, description: true }

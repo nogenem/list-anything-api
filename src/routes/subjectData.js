@@ -11,13 +11,15 @@ router.use(authenticate);
 
 router.get("/", (req, res) => {
   if (req.query.tabId) {
+    // findByTabId
     SubjectData.find(
       { tabId: req.query.tabId },
       { data: true, tabId: true }
     ).then(data => res.json({ subjectData: data }));
   } else if (req.query._id) {
-    SubjectData.find({ _id: req.query._id }, { data: true, tabId: true }).then(
-      data => res.json({ subjectData: data })
+    // findById
+    SubjectData.findById(req.query._id, { data: true, tabId: true }).then(
+      data => res.json({ subjectData: [data] })
     );
   } else {
     res.status(400).json({});
