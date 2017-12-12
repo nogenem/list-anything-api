@@ -9,6 +9,24 @@ import parseErrors from "../utils/parseErrors";
 const router = express.Router();
 router.use(authenticate);
 
+const reshapeSearchResult = data => {
+  const results = [];
+
+  forEach(data, val => {
+    const result = {
+      _id: val._id,
+      value: val.data[0].value,
+      subject: val.subjectId.description
+    };
+    const tabData = val.subjectId.tabs.filter(
+      tab => String(tab._id) === String(val.tabId)
+    );
+    result.tab = tabData[0].description;
+    results.push(result);
+  });
+  return results;
+};
+
 router.get("/", (req, res) => {
   if (req.query.tabId) {
     // findByTabId
@@ -27,8 +45,10 @@ router.get("/", (req, res) => {
       {
         "data.value": { $regex: `.*${req.query.query}.*`, $options: "i" }
       },
-      { data: true, tabId: true }
-    ).then(data => res.json({ subjectData: data }));
+      { "data.$.value": true, tabId: true }
+    )
+      .populate("subjectId", "description tabs")
+      .then(data => res.json({ subjectData: reshapeSearchResult(data) }));
   } else {
     res.status(400).json({});
   }

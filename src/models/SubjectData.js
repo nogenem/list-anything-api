@@ -7,7 +7,15 @@ const Data = new mongoose.Schema({
 
 const SubjectData = new mongoose.Schema(
   {
-    tabId: { type: mongoose.Schema.Types.ObjectId, required: true }, // FK
+    tabId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true
+    }, // FK
+    subjectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "Subject"
+    }, // FK
     data: [Data]
   },
   { timestamps: true }
