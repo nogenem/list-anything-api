@@ -17,6 +17,16 @@ router.get("/", (req, res) => {
       tabs: true,
       fields: true
     }).then(resp => res.json({ subject: resp }));
+  } else if (req.query.tabId) {
+    // findByTabId
+    Subject.findOne(
+      { "tabs._id": req.query.tabId },
+      {
+        description: true,
+        tabs: true,
+        fields: true
+      }
+    ).then(resp => res.json({ subject: resp }));
   } else {
     // findByUserId
     Subject.find(
