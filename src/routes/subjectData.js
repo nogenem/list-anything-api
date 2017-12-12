@@ -21,6 +21,14 @@ router.get("/", (req, res) => {
     SubjectData.findById(req.query._id, { data: true, tabId: true }).then(
       data => res.json({ subjectData: [data] })
     );
+  } else if (req.query.query) {
+    // findByQuery
+    SubjectData.find(
+      {
+        "data.value": { $regex: `.*${req.query.query}.*`, $options: "i" }
+      },
+      { data: true, tabId: true }
+    ).then(data => res.json({ subjectData: data }));
   } else {
     res.status(400).json({});
   }
