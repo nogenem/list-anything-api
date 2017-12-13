@@ -79,6 +79,12 @@ router.put("/", (req, res) => {
   }
 
   const updates = [];
+  updates.push({
+    updateOne: {
+      filter: { _id: ObjectId(req.body._id) },
+      update: { tabId: req.body.tabId }
+    }
+  });
   forEach(values, elem => {
     updates.push({
       updateOne: {
