@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const Data = new mongoose.Schema({
-  value: { type: String, required: true },
+  value: { type: String },
   fieldId: { type: mongoose.Schema.Types.ObjectId, required: true } // FK
 });
 
