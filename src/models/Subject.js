@@ -2,11 +2,12 @@ import mongoose from "mongoose";
 import uniqueValidator from "mongoose-unique-validator";
 
 const Tabs = new mongoose.Schema({
-  description: { type: String, required: true } // Unique para um mesmo Subject!
+  description: { type: String, required: true }
 });
+Tabs.index({ _id: 1 });
 
 const Fields = new mongoose.Schema({
-  description: { type: String, required: true }, // Unique para um mesmo Subject!
+  description: { type: String, required: true },
   is_unique: { type: Boolean, default: false },
   show_in_list: { type: Boolean, default: false },
   field_type: { type: String, required: true }
@@ -15,7 +16,11 @@ const Fields = new mongoose.Schema({
 const Subjects = new mongoose.Schema(
   {
     description: { type: String, required: true, unique: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      index: true
+    },
     tabs: [Tabs],
     fields: [Fields]
   },
