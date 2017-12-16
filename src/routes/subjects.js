@@ -37,13 +37,26 @@ router.get("/", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  Subject.create({ ...req.body.subject, userId: req.currentUser._id })
-    .then(subject =>
-      res.json({
-        subject: { _id: subject._id, description: subject.description }
-      })
-    )
-    .catch(err => res.status(400).json({ errors: parseErrors(err.errors) }));
+  Subject.findOne({
+    userId: req.currentUser._id,
+    description: req.body.subject.description
+  }).then(data => {
+    if (!data) {
+      Subject.create({ ...req.body.subject, userId: req.currentUser._id })
+        .then(subject =>
+          res.json({
+            subject: { _id: subject._id, description: subject.description }
+          })
+        )
+        .catch(err =>
+          res.status(400).json({ errors: parseErrors(err.errors) })
+        );
+    } else {
+      res
+        .status(400)
+        .json({ errors: { description: "Can't have duplicates" } });
+    }
+  });
 });
 
 router.delete("/", (req, res) => {

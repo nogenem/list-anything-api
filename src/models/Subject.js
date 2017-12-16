@@ -15,7 +15,7 @@ const Fields = new mongoose.Schema({
 
 const Subjects = new mongoose.Schema(
   {
-    description: { type: String, required: true, unique: true },
+    description: { type: String, required: true },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
