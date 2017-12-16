@@ -5,6 +5,7 @@ import escapeRegex from "escape-string-regexp";
 
 import authenticate from "../middlewares/authenticate";
 import SubjectData from "../models/SubjectData";
+import Subject from "../models/Subject";
 import parseErrors from "../utils/parseErrors";
 
 const router = express.Router();
@@ -48,17 +49,26 @@ router.get("/", (req, res) => {
       data => res.json({ subjectData: [data] })
     );
   } else if (req.query.query) {
-    // findByQuery
-    SubjectData.find(
-      {
-        "data.value": { $regex: escapeRegex(req.query.query), $options: "i" }
-      },
-      { "data.$": true, tabId: true }
-    )
-      .populate("subjectId", "description tabs fields")
-      .then(data => {
-        res.json({ subjectData: reshapeSearchResult(data) });
-      });
+    // findByQuery [restringido aos dados do usuário]
+    Subject.find({ userId: req.currentUser._id }, { _id: true }).then(
+      subjects => {
+        const ids = subjects.map(subject => subject._id);
+        SubjectData.find(
+          {
+            subjectId: { $in: ids },
+            "data.value": {
+              $regex: escapeRegex(req.query.query),
+              $options: "i"
+            }
+          },
+          { "data.$": true, tabId: true }
+        )
+          .populate("subjectId", "description tabs fields")
+          .then(data => {
+            res.json({ subjectData: reshapeSearchResult(data) });
+          });
+      }
+    );
   } else {
     res.status(400).json({});
   }
