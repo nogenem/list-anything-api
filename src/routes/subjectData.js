@@ -22,6 +22,13 @@ const reshapeSearchResult = data => {
       tab => String(tab._id) === String(val.tabId)
     );
     result.tab = tabData[0].description;
+    const fieldData = val.subjectId.fields.filter(
+      field => String(field._id) === String(val.data[0].fieldId)
+    );
+    result.field = {
+      description: fieldData[0].description,
+      field_type: fieldData[0].field_type
+    };
     results.push(result);
   });
   return results;
@@ -45,10 +52,12 @@ router.get("/", (req, res) => {
       {
         "data.value": { $regex: `.*${req.query.query}.*`, $options: "i" }
       },
-      { "data.$.value": true, tabId: true }
+      { "data.$": true, tabId: true }
     )
-      .populate("subjectId", "description tabs")
-      .then(data => res.json({ subjectData: reshapeSearchResult(data) }));
+      .populate("subjectId", "description tabs fields")
+      .then(data => {
+        res.json({ subjectData: reshapeSearchResult(data) });
+      });
   } else {
     res.status(400).json({});
   }
