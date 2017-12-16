@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import forEach from "lodash.foreach";
+import escapeRegex from "escape-string-regexp";
 
 import authenticate from "../middlewares/authenticate";
 import SubjectData from "../models/SubjectData";
@@ -50,7 +51,7 @@ router.get("/", (req, res) => {
     // findByQuery
     SubjectData.find(
       {
-        "data.value": { $regex: `.*${req.query.query}.*`, $options: "i" }
+        "data.value": { $regex: escapeRegex(req.query.query), $options: "i" }
       },
       { "data.$": true, tabId: true }
     )
