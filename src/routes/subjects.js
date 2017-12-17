@@ -18,7 +18,7 @@ router.get("/", (req, res) => {
       fields: true
     }).then(resp => {
       if (resp) res.json({ subject: resp });
-      else res.status(404).json({ errors: { global: "Invalid subject id" } });
+      else res.status(400).json({ errors: { global: "Invalid subject id" } });
     });
   } else if (req.query.tabId) {
     // findByTabId
@@ -29,7 +29,10 @@ router.get("/", (req, res) => {
         tabs: true,
         fields: true
       }
-    ).then(resp => res.json({ subject: resp }));
+    ).then(resp => {
+      if (resp) res.json({ subject: resp });
+      else res.status(400).json({ errors: { global: "Invalid tab id" } });
+    });
   } else {
     // findByUserId
     Subject.find(

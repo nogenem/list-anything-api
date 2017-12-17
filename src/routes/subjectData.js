@@ -42,11 +42,20 @@ router.get("/", (req, res) => {
     SubjectData.find(
       { tabId: req.query.tabId },
       { data: true, tabId: true }
-    ).then(data => res.json({ subjectData: data }));
+    ).then(data => {
+      if (data) res.json({ subjectData: data });
+      else res.status(400).json({ errors: { global: "Invalid tab id" } });
+    });
   } else if (req.query._id) {
     // findById
     SubjectData.findById(req.query._id, { data: true, tabId: true }).then(
-      data => res.json({ subjectData: [data] })
+      data => {
+        if (data) res.json({ subjectData: [data] });
+        else
+          res
+            .status(400)
+            .json({ errors: { global: "Invalid subjectdata id" } });
+      }
     );
   } else if (req.query.query) {
     // findByQuery [restringido aos dados do usuário]
@@ -126,6 +135,8 @@ router.delete("/", (req, res) => {
     SubjectData.deleteOne({ _id })
       .then(val => res.json({ result: val.result.ok }))
       .catch(() => res.json({ result: false }));
+  } else {
+    res.status(400).json({});
   }
 });
 
