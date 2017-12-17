@@ -16,7 +16,10 @@ router.get("/", (req, res) => {
       description: true,
       tabs: true,
       fields: true
-    }).then(resp => res.json({ subject: resp }));
+    }).then(resp => {
+      if (resp) res.json({ subject: resp });
+      else res.status(404).json({ errors: { global: "Invalid subject id" } });
+    });
   } else if (req.query.tabId) {
     // findByTabId
     Subject.findOne(
