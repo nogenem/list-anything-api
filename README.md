@@ -24,7 +24,7 @@ Clique [aqui](https://imgur.com/a/K2s8p) para ver algumas imagens do site.
 ### Setting up Dev
 
 Primeiro deve-se instalar o [NodeJs](https://nodejs.org/en/download/) e o [MongoDB](https://docs.mongodb.com/getting-started/shell/installation/), caso ainda não os tenha.
-Em seguida deve-se abrir uma janela do terminal e deve-se inicializar o banco de dados executando o comando:
+Em seguida deve-se abrir uma janela do terminal e deve-se inicializar o banco de dados, executando o comando:
 ```shell
 mongod
 ```
@@ -34,6 +34,13 @@ Agora deve-se abrir uma nova janela do terminal e deve-se executar os comandos:
 git clone https://github.com/nogenem/list-anything-api
 cd list-anything-api
 yarn install
+```
+
+Em seguida deve-se fazer uma cópia do arquivo *.env.BASE*, renomear a cópia para apenas *.env* e então ajustar os parâmetros do arquivo.
+Durante o desenvolvimento, ou se quiser apenas testar o site, pode-se utilizar o [Mailtrap](https://mailtrap.io/) para conseguir os valores dos parâmetros *EMAIL_** do arquivo *.env*.
+
+E então pode-se inicializar o server, executando o comando:
+```shell
 yarn start
 ```
 
