@@ -83,8 +83,8 @@ router.get("/", (req, res) => {
   }
 });
 
-router.post("/", (req, res) => {
-  SubjectData.create({ ...req.body })
+const createSubjectData = (data, res) => {
+  SubjectData.create(data)
     .then(subjectData =>
       res.json({
         subjectData: {
@@ -95,6 +95,37 @@ router.post("/", (req, res) => {
       })
     )
     .catch(err => res.status(400).json({ errors: parseErrors(err.errors) }));
+};
+
+router.post("/", (req, res) => {
+  const data = { ...req.body };
+  Subject.findById(data.subjectId, { fields: true }).then(subject => {
+    // Checagem por valores duplicados para fields que possuem
+    // is_unique = true
+    const fieldsUniqueIds = subject.fields
+      .filter(field => field.is_unique)
+      .map(field => String(field._id));
+    const toCheck = [];
+
+    forEach(data.data, value => {
+      if (fieldsUniqueIds.includes(String(value.fieldId))) {
+        toCheck.push(new RegExp(`^${value.value}$`, "i"));
+      }
+    });
+
+    if (toCheck.length) {
+      SubjectData.find(
+        { "data.value": { $in: toCheck } },
+        { "data.$": true }
+      ).then(result => {
+        if (result.length) {
+          res.status(400).json({
+            errors: { [result[0].data[0].fieldId]: "Can't have duplicates" }
+          });
+        } else createSubjectData(data, res);
+      });
+    } else createSubjectData(data, res);
+  });
 });
 
 // $currentDate: { lastModified: true } }
