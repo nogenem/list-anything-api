@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import uniqueValidator from "mongoose-unique-validator";
 
 const Tabs = new mongoose.Schema({
   description: { type: String, required: true }
@@ -26,11 +25,5 @@ const Subjects = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-const customErrorMsg = {
-  // TODO: remover isso e tratar na Interface!!
-  message: "Error, expected {PATH} to be unique."
-};
-Subjects.plugin(uniqueValidator, customErrorMsg);
 
 export default mongoose.model("Subject", Subjects);
