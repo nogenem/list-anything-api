@@ -8,6 +8,13 @@ import SubjectData from "../models/SubjectData";
 import Subject from "../models/Subject";
 import parseErrors from "../utils/parseErrors";
 
+import handleErrors from "../utils/handleErrors";
+import {
+  invalidIdError,
+  duplicatedValuesError,
+  invalidRequestError
+} from "../utils/errors";
+
 const router = express.Router();
 router.use(authenticate);
 
@@ -39,30 +46,31 @@ const reshapeSearchResult = data => {
 router.get("/", (req, res) => {
   if (req.query.tabId) {
     // findByTabId
-    SubjectData.find(
-      { tabId: req.query.tabId },
-      { data: true, tabId: true }
-    ).then(data => {
-      if (data) res.json({ subjectData: data });
-      else res.status(400).json({ errors: { global: "Invalid tab id" } });
-    });
+    SubjectData.find({ tabId: req.query.tabId }, { data: true, tabId: true })
+      .then(data => {
+        if (data) res.json({ subjectData: data });
+        else throw invalidIdError();
+      })
+      .catch(err => handleErrors(err, res));
   } else if (req.query._id) {
     // findById
-    SubjectData.findById(req.query._id, { data: true, tabId: true }).then(
-      data => {
+    SubjectData.findById(req.query._id, { data: true, tabId: true })
+      .then(data => {
         if (data) res.json({ subjectData: [data] });
-        else
-          res
-            .status(400)
-            .json({ errors: { global: "Invalid subjectdata id" } });
-      }
-    );
+        else throw invalidIdError();
+      })
+      .catch(err => handleErrors(err, res));
   } else if (req.query.query) {
     // findByQuery [restringido aos dados do usuário]
-    Subject.find({ userId: req.currentUser._id }, { _id: true }).then(
-      subjects => {
+    Subject.find({ userId: req.currentUser._id }, { _id: true })
+      .then(subjects => {
+        if (!subjects) {
+          res.json({ subjectData: [] });
+          return;
+        }
+
         const ids = subjects.map(subject => subject._id);
-        SubjectData.find(
+        return SubjectData.find(
           {
             subjectId: { $in: ids },
             "data.value": {
@@ -71,61 +79,60 @@ router.get("/", (req, res) => {
             }
           },
           { "data.$": true, tabId: true }
-        )
-          .populate("subjectId", "description tabs fields")
-          .then(data => {
-            res.json({ subjectData: reshapeSearchResult(data) });
-          });
-      }
-    );
+        ).populate("subjectId", "description tabs fields");
+      })
+      .then(data => {
+        res.json({ subjectData: reshapeSearchResult(data) });
+      })
+      .catch(err => handleErrors(err, res));
   } else {
-    res.status(400).json({});
+    handleErrors(invalidRequestError(), res);
   }
 });
 
-const createSubjectData = (data, res) => {
-  SubjectData.create(data)
-    .then(subjectData =>
-      res.json({
-        subjectData: {
-          _id: subjectData._id,
-          tabId: subjectData.tabId,
-          data: subjectData.data
-        }
-      })
-    )
-    .catch(err => res.status(400).json({ errors: parseErrors(err.errors) }));
-};
+const createSubjectData = (data, res) =>
+  SubjectData.create(data).then(subjectData =>
+    res.json({
+      subjectData: {
+        _id: subjectData._id,
+        tabId: subjectData.tabId,
+        data: subjectData.data
+      }
+    })
+  );
 
 router.post("/", (req, res) => {
   const data = { ...req.body };
-  Subject.findById(data.subjectId, { fields: true }).then(subject => {
-    // Checagem por valores duplicados para fields que possuem
-    // is_unique = true
-    const fieldsUniqueIds = subject.fields
-      .filter(field => field.is_unique)
-      .map(field => String(field._id));
-    const toCheck = [];
 
-    forEach(data.data, value => {
-      if (fieldsUniqueIds.includes(String(value.fieldId))) {
-        toCheck.push(new RegExp(`^${value.value}$`, "i"));
-      }
-    });
+  Subject.findById(data.subjectId, { fields: true })
+    .then(subject => {
+      if (!subject) throw invalidIdError();
 
-    if (toCheck.length) {
-      SubjectData.find(
-        { "data.value": { $in: toCheck } },
-        { "data.$": true }
-      ).then(result => {
-        if (result.length) {
-          res.status(400).json({
-            errors: { [result[0].data[0].fieldId]: "Can't have duplicates" }
-          });
-        } else createSubjectData(data, res);
+      // Checagem por valores duplicados para fields que possuem
+      // is_unique = true
+      const fieldsUniqueIds = subject.fields
+        .filter(field => field.is_unique)
+        .map(field => String(field._id));
+      const toCheck = [];
+
+      forEach(data.data, value => {
+        if (fieldsUniqueIds.includes(String(value.fieldId))) {
+          toCheck.push(new RegExp(`^${value.value}$`, "i"));
+        }
       });
-    } else createSubjectData(data, res);
-  });
+
+      if (toCheck.length) {
+        return SubjectData.find(
+          { "data.value": { $in: toCheck } },
+          { "data.$": true }
+        ).then(result => {
+          if (result.length)
+            throw duplicatedValuesError([result[0].data[0].fieldId]);
+          else return createSubjectData(data, res);
+        });
+      } else return createSubjectData(data, res);
+    })
+    .catch(err => handleErrors(err, res));
 });
 
 // $currentDate: { lastModified: true } }
@@ -134,40 +141,49 @@ router.put("/", (req, res) => {
   const values = Object.values(req.body.data);
 
   if (!values.length) {
-    res.status(400).json({ errors: { global: "Invalid data." } });
+    handleErrors(invalidRequestError(), res);
     return;
   }
 
   const updates = [];
-  updates.push({
-    updateOne: {
-      filter: { _id: ObjectId(req.body._id) },
-      update: { tabId: req.body.tabId }
-    }
-  });
-  forEach(values, elem => {
+  try {
     updates.push({
       updateOne: {
-        filter: { "data._id": ObjectId(elem._id) },
-        update: { "data.$.value": elem.value }
+        filter: { _id: ObjectId(req.body._id) },
+        update: { tabId: req.body.tabId }
       }
     });
-  });
-  SubjectData.bulkWrite(updates).then(() =>
-    SubjectData.find({ _id: req.body._id }, { data: true, tabId: true }).then(
-      data => res.json({ subjectData: data })
+    forEach(values, elem => {
+      updates.push({
+        updateOne: {
+          filter: { "data._id": ObjectId(elem._id) },
+          update: { "data.$.value": elem.value }
+        }
+      });
+    });
+  } catch (err) {
+    handleErrors(err, res);
+    return;
+  }
+  SubjectData.bulkWrite(updates)
+    .then(() =>
+      SubjectData.find({ _id: req.body._id }, { data: true, tabId: true })
     )
-  );
+    .then(data => res.json({ subjectData: data }))
+    .catch(err => handleErrors(err, res));
 });
 
 router.delete("/", (req, res) => {
   if (req.query._id) {
-    const _id = mongoose.Types.ObjectId(req.query._id);
+    const _id = req.query._id;
     SubjectData.deleteOne({ _id })
-      .then(val => res.json({ result: val.result.ok }))
-      .catch(() => res.json({ result: false }));
+      .then(val => {
+        if (val) res.json({ _id });
+        else throw invalidIdError();
+      })
+      .catch(err => handleErrors(err, res));
   } else {
-    res.status(400).json({});
+    handleErrors(invalidRequestError(), res);
   }
 });
 

@@ -4,7 +4,13 @@ import mongoose from "mongoose";
 import authenticate from "../middlewares/authenticate";
 import Subject from "../models/Subject";
 import SubjectData from "../models/SubjectData";
-import parseErrors from "../utils/parseErrors";
+
+import handleErrors from "../utils/handleErrors";
+import {
+  invalidIdError,
+  duplicatedValuesError,
+  invalidRequestError
+} from "../utils/errors";
 
 const router = express.Router();
 router.use(authenticate);
@@ -16,10 +22,12 @@ router.get("/", (req, res) => {
       description: true,
       tabs: true,
       fields: true
-    }).then(resp => {
-      if (resp) res.json({ subject: resp });
-      else res.status(400).json({ errors: { global: "Invalid subject id" } });
-    });
+    })
+      .then(subject => {
+        if (subject) res.json({ subject });
+        else throw invalidIdError();
+      })
+      .catch(err => handleErrors(err, res));
   } else if (req.query.tabId) {
     // findByTabId
     Subject.findOne(
@@ -29,16 +37,20 @@ router.get("/", (req, res) => {
         tabs: true,
         fields: true
       }
-    ).then(resp => {
-      if (resp) res.json({ subject: resp });
-      else res.status(400).json({ errors: { global: "Invalid tab id" } });
-    });
+    )
+      .then(subject => {
+        if (subject) res.json({ subject });
+        else throw invalidIdError();
+      })
+      .catch(err => handleErrors(err, res));
   } else {
     // findByUserId
     Subject.find(
       { userId: req.currentUser._id },
       { _id: true, description: true }
-    ).then(subjects => res.json({ subjects }));
+    )
+      .then(subjects => res.json({ subjects }))
+      .catch(err => handleErrors(err, res));
   }
 });
 
@@ -46,23 +58,22 @@ router.post("/", (req, res) => {
   Subject.findOne({
     userId: req.currentUser._id,
     description: req.body.subject.description
-  }).then(data => {
-    if (!data) {
-      Subject.create({ ...req.body.subject, userId: req.currentUser._id })
-        .then(subject =>
-          res.json({
-            subject: { _id: subject._id, description: subject.description }
-          })
-        )
-        .catch(err =>
-          res.status(400).json({ errors: parseErrors(err.errors) })
-        );
-    } else {
-      res
-        .status(400)
-        .json({ errors: { description: "Can't have duplicates" } });
-    }
-  });
+  })
+    .then(data => {
+      if (data) throw duplicatedValuesError(["description"]);
+      else {
+        return Subject.create({
+          ...req.body.subject,
+          userId: req.currentUser._id
+        });
+      }
+    })
+    .then(subject =>
+      res.json({
+        subject: { _id: subject._id, description: subject.description }
+      })
+    )
+    .catch(err => handleErrors(err, res));
 });
 
 router.delete("/", (req, res) => {
@@ -70,12 +81,18 @@ router.delete("/", (req, res) => {
     const _id = req.query._id;
     Subject.findByIdAndRemove(_id, { select: "tabs" })
       .then(subject => {
-        const tabs = subject.tabs.map(tab => mongoose.Types.ObjectId(tab._id));
-        SubjectData.deleteMany({ tabId: { $in: tabs } })
-          .then(() => res.json({ result: true, _id }))
-          .catch(() => res.json({ result: false, _id }));
+        if (!subject) throw invalidIdError();
+        else {
+          const tabs = subject.tabs.map(tab =>
+            mongoose.Types.ObjectId(tab._id)
+          );
+          return SubjectData.deleteMany({ tabId: { $in: tabs } });
+        }
       })
-      .catch(() => res.json({ result: false, _id }));
+      .then(() => res.json({ _id }))
+      .catch(err => handleErrors(err, res));
+  } else {
+    handleErrors(invalidRequestError(), res);
   }
 });
 
