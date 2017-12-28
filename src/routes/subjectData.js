@@ -9,38 +9,14 @@ import Subject from "../models/Subject";
 
 import handleErrors from "../utils/handleErrors";
 import {
-  invalidIdError,
-  duplicatedValuesError,
-  invalidRequestError
-} from "../utils/errors";
+  reshapeSearchResult,
+  reshapeEditData,
+  checkDuplicatedValues
+} from "../utils/subjectDataRouteUtils";
+import { invalidIdError, invalidRequestError } from "../utils/errors";
 
 const router = express.Router();
 router.use(authenticate);
-
-const reshapeSearchResult = data => {
-  const results = [];
-
-  forEach(data, val => {
-    const result = {
-      _id: val._id,
-      value: val.data[0].value,
-      subject: val.subjectId.description
-    };
-    const tabData = val.subjectId.tabs.filter(
-      tab => String(tab._id) === String(val.tabId)
-    );
-    result.tab = tabData[0].description;
-    const fieldData = val.subjectId.fields.filter(
-      field => String(field._id) === String(val.data[0].fieldId)
-    );
-    result.field = {
-      description: fieldData[0].description,
-      field_type: fieldData[0].field_type
-    };
-    results.push(result);
-  });
-  return results;
-};
 
 router.get("/", (req, res) => {
   if (req.query.tabId) {
@@ -101,44 +77,13 @@ const createSubjectData = (data, res) =>
   );
 
 router.post("/", (req, res) => {
-  const data = { ...req.body };
-
-  Subject.findById(data.subjectId, { fields: true })
-    .then(subject => {
-      if (!subject) throw invalidIdError();
-
-      // Checagem por valores duplicados para fields que possuem
-      // is_unique = true
-      const fieldsUniqueIds = subject.fields
-        .filter(field => field.is_unique)
-        .map(field => String(field._id));
-      const toCheck = [];
-
-      forEach(data.data, value => {
-        if (fieldsUniqueIds.includes(String(value.fieldId))) {
-          toCheck.push(new RegExp(`^${value.value}$`, "i"));
-        }
-      });
-
-      if (toCheck.length) {
-        return SubjectData.find(
-          { "data.value": { $in: toCheck } },
-          { "data.$": true }
-        ).then(result => {
-          if (result.length)
-            throw duplicatedValuesError([result[0].data[0].fieldId]);
-          else return createSubjectData(data, res);
-        });
-      }
-      return createSubjectData(data, res);
-    })
-    .catch(err => handleErrors(err, res));
+  const subjData = { ...req.body };
+  checkDuplicatedValues(subjData, res, createSubjectData);
 });
 
-// $currentDate: { lastModified: true } }
-router.put("/", (req, res) => {
+const editSubjectData = (subjData, res) => {
   const ObjectId = mongoose.Types.ObjectId;
-  const values = Object.values(req.body.data);
+  const values = subjData.data;
 
   if (!values.length) {
     handleErrors(invalidRequestError(), res);
@@ -149,8 +94,8 @@ router.put("/", (req, res) => {
   try {
     updates.push({
       updateOne: {
-        filter: { _id: ObjectId(req.body._id) },
-        update: { tabId: req.body.tabId }
+        filter: { _id: ObjectId(subjData._id) },
+        update: { tabId: subjData.tabId }
       }
     });
     forEach(values, elem => {
@@ -167,10 +112,15 @@ router.put("/", (req, res) => {
   }
   SubjectData.bulkWrite(updates)
     .then(() =>
-      SubjectData.find({ _id: req.body._id }, { data: true, tabId: true })
+      SubjectData.find({ _id: subjData._id }, { data: true, tabId: true })
     )
     .then(data => res.json({ subjectData: data }))
     .catch(err => handleErrors(err, res));
+};
+
+router.put("/", (req, res) => {
+  const subjData = reshapeEditData(req.body);
+  checkDuplicatedValues(subjData, res, editSubjectData);
 });
 
 router.delete("/", (req, res) => {
