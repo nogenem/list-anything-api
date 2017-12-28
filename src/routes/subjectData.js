@@ -6,7 +6,6 @@ import escapeRegex from "escape-string-regexp";
 import authenticate from "../middlewares/authenticate";
 import SubjectData from "../models/SubjectData";
 import Subject from "../models/Subject";
-import parseErrors from "../utils/parseErrors";
 
 import handleErrors from "../utils/handleErrors";
 import {
@@ -66,7 +65,7 @@ router.get("/", (req, res) => {
       .then(subjects => {
         if (!subjects) {
           res.json({ subjectData: [] });
-          return;
+          return null;
         }
 
         const ids = subjects.map(subject => subject._id);
@@ -82,7 +81,7 @@ router.get("/", (req, res) => {
         ).populate("subjectId", "description tabs fields");
       })
       .then(data => {
-        res.json({ subjectData: reshapeSearchResult(data) });
+        if (data) res.json({ subjectData: reshapeSearchResult(data) });
       })
       .catch(err => handleErrors(err, res));
   } else {
@@ -130,7 +129,8 @@ router.post("/", (req, res) => {
             throw duplicatedValuesError([result[0].data[0].fieldId]);
           else return createSubjectData(data, res);
         });
-      } else return createSubjectData(data, res);
+      }
+      return createSubjectData(data, res);
     })
     .catch(err => handleErrors(err, res));
 });
