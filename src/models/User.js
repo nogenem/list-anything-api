@@ -41,14 +41,16 @@ schema.methods.generateResetPasswordToken = function generateResetPasswordToken(
   );
 };
 
-schema.methods.generateResetPasswordUrl = function generateResetPasswordUrl() {
-  return `${
-    process.env.HOST
-  }/reset_password/${this.generateResetPasswordToken()}`;
+schema.methods.generateResetPasswordUrl = function generateResetPasswordUrl(
+  host
+) {
+  return `${host}/reset_password/${this.generateResetPasswordToken()}`;
 };
 
-schema.methods.generateConfirmationUrl = function generateConfirmationUrl() {
-  return `${process.env.HOST}/confirmation/${this.confirmationToken}`;
+schema.methods.generateConfirmationUrl = function generateConfirmationUrl(
+  host
+) {
+  return `${host}/confirmation/${this.confirmationToken}`;
 };
 
 schema.methods.generateJWT = function generateJWT() {

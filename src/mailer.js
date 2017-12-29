@@ -1,8 +1,17 @@
 import nodemailer from "nodemailer";
 
-const from = '"ListAnything" <info@listanything.com>';
+const from = `${process.env.EMAIL_USER} <${process.env.EMAIL_USER}>`;
 
 function setup() {
+  if (process.env.MY_NODE_ENV === "production") {
+    return nodemailer.createTransport({
+      service: "Gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+  }
   // https://mailtrap.io
   return nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
@@ -14,32 +23,34 @@ function setup() {
   });
 }
 
-export function sendConfirmationEmail(user) {
+export function sendConfirmationEmail(user, host) {
   const tranport = setup();
+  const url = user.generateConfirmationUrl(host);
   const email = {
     from,
-    to: user.email,
+    to: `${user.email} <${user.email}>`,
     subject: "Welcome to ListAnything",
-    text: `
-    Welcome to ListAnything. Please, confirm your email.
+    html: `
+    Welcome to ListAnything. Please, confirm your email.<br/>
 
-    ${user.generateConfirmationUrl()}
+    <a href="${url}">${url}</a>
     `
   };
 
   tranport.sendMail(email);
 }
 
-export function sendResetPasswordEmail(user) {
+export function sendResetPasswordEmail(user, host) {
   const tranport = setup();
+  const url = user.generateResetPasswordUrl(host);
   const email = {
     from,
-    to: user.email,
+    to: `${user.email} <${user.email}>`,
     subject: "Reset Password",
-    text: `
-    To reset password follow this link
+    html: `
+    To reset password follow this link:<br/>
 
-    ${user.generateResetPasswordUrl()}
+    <a href="${url}">${url}</a>
     `
   };
 

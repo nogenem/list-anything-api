@@ -10,6 +10,7 @@ import {
   noUserWithSuchEmailError,
   invalidTokenError
 } from "../utils/errors";
+import getHostName from "../utils/getHostName";
 
 const router = express.Router();
 
@@ -37,9 +38,11 @@ router.post("/confirmation", (req, res) => {
 });
 
 router.post("/reset_password_request", (req, res) => {
+  const host = getHostName(req.headers);
+
   User.findOne({ email: req.body.email }).then(user => {
     if (user) {
-      sendResetPasswordEmail(user);
+      sendResetPasswordEmail(user, host);
       res.json({});
     } else {
       handleErrors(noUserWithSuchEmailError(), res);
