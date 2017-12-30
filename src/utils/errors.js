@@ -35,3 +35,5 @@ export const noUserWithSuchEmailError = () =>
 
 export const invalidTokenError = () =>
   new CustomError({ global: "Invalid token" });
+
+export const noTokenError = () => new CustomError({ global: "No token" });
