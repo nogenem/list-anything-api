@@ -17,9 +17,13 @@
   "bugs": {
     "url": "https://github.com/nogenem/list-anything-api/issues"
   },
+  "engines": {
+    "node": "8.9.1"
+  },
   "now": {
     "name": "list-anything",
-    "alias": "list-anything"
+    "alias": "list-anything",
+	"dotenv": true
   },
   "dependencies": {
     "bcrypt": "^1.0.3",
