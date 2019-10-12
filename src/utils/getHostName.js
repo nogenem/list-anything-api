@@ -4,8 +4,8 @@ export default headers => {
 
   if (headers.referer) {
     const host = headers.referer;
-    const index = host.replace(/https?:\/\//, "").indexOf("/");
-    return host.substring(0, index);
+    const url = new URL(host);
+    return url.origin;
   }
 
   let host = headers.host;
